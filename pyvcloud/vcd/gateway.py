@@ -522,6 +522,31 @@ class Gateway(object):
             self.resource, RelationType.EDIT, EntityType.EDGE_GATEWAY.value,
             gateway)
 
+    def edit_sub_allocated_ip_pools_(self, ext_network, ip_range, new_ip_ranges):
+        """Patch to support accepting new ip as  multiple ranges.
+        """
+        gateway = self.get_resource()
+        for gateway_inf in \
+                gateway.Configuration.GatewayInterfaces.GatewayInterface:
+            if gateway_inf.Name == ext_network:
+                subnet_participation = gateway_inf.SubnetParticipation
+                existing_ip_ranges = self.get_sub_allocate_ip_ranges_element(
+                    subnet_participation)
+                if existing_ip_ranges is None:
+                    existing_ip_ranges = E.IpRanges()
+                    subnet_participation.IpAddress.addnext(existing_ip_ranges)
+                # add all range
+                self.__add_ip_ranges_element(existing_ip_ranges, new_ip_ranges)
+
+                # remove current `ip_range` -> because it has to be overriden
+                ip_range_list = [ip_range]
+                self.__remove_ip_range_elements(existing_ip_ranges, ip_range_list)
+                break
+
+        return self.client.put_linked_resource(
+            self.resource, RelationType.EDIT, EntityType.EDGE_GATEWAY.value,
+            gateway)
+
     def get_sub_allocate_ip_ranges_element(self, subnet_participation):
         """Gets existing ip range present in the sub allocate pool of gateway.
 
