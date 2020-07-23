@@ -395,7 +395,7 @@ class Gateway(object):
                 gateway.Description = E.Description(desc)
             else:
                 gateway.insert(0, E.Description(desc))
-        if ha:
+        if ha is not None:
             gateway.Configuration.HaEnabled = E.HaEnabled(ha)
         if gateway_backing_config:
             gateway.Configuration.GatewayBackingConfig = E.GatewayBackingConfig(
