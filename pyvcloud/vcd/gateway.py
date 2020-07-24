@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import netaddr
+
 from pyvcloud.vcd.client import create_element
 from pyvcloud.vcd.client import E
 from pyvcloud.vcd.client import EntityType
@@ -629,6 +631,56 @@ class Gateway(object):
         return self.client.put_linked_resource(
             self.resource, RelationType.EDIT, EntityType.EDGE_GATEWAY.value,
             gateway)
+
+    def _find_ip_range_slice(self, existing_ip_ranges, ip):
+        ip_ranges = None
+        for exist_range in existing_ip_ranges.IpRange:
+            range_ = netaddr.IPRange(
+                str(exist_range.StartAddress), str(exist_range.EndAddress)
+            )
+            for host in list(range_):
+                if str(host) == ip:
+                    ip_ranges = [f"{exist_range.StartAddress}-{exist_range.EndAddress}"]
+                    break
+
+        return ip_ranges
+
+    def _get_new_range_slice(self, ip_ranges, ip):        
+        range_token = ip_ranges[0].split("-") # only accept one range
+        ranges_set = netaddr.IPSet(netaddr.IPRange(range_token[0], range_token[1]))
+        if ip in ranges_set:
+            ranges_set.remove(ip)
+        else:
+            raise ValueError("Ip not found in current Gateway")
+
+        new_range = list(ranges_set.iter_ipranges())  # for non contiguous
+        result = [str(range_) for range_ in new_range]
+
+        return result
+
+    def remove_sub_allocated_ip_pools_(self, ext_network, ip):
+        """Patch for smarter remove for given IP"""
+        gateway = self.get_resource()
+        for gateway_inf in gateway.Configuration.GatewayInterfaces.GatewayInterface:
+            if gateway_inf.Name == ext_network:
+                subnet_participation = gateway_inf.SubnetParticipation
+                existing_ip_ranges = self.get_sub_allocate_ip_ranges_element(
+                    subnet_participation
+                )
+                ip_ranges = self._find_ip_range_slice(existing_ip_ranges, ip)
+
+                # remove previous ip range slice
+                self.__remove_ip_range_elements(existing_ip_ranges, ip_ranges)
+                # add new slice
+                new_range_slice = self._get_new_range_slice(ip_ranges, ip)
+                self.__add_ip_ranges_element(existing_ip_ranges, new_range_slice)
+                if not hasattr(existing_ip_ranges, "IpRange"):
+                    subnet_participation.remove(existing_ip_ranges)
+                break
+
+        return self.client.put_linked_resource(
+            self.resource, RelationType.EDIT, EntityType.EDGE_GATEWAY.value, gateway
+        )
 
     def edit_rate_limits(self, rate_limit_configs):
         """Edits existing rate limit of gateway.
