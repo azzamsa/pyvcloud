@@ -911,8 +911,8 @@ class Org(object):
 
     def create_user(self,
                     user_name,
-                    password,
                     role_href,
+                    password=None,
                     full_name='',
                     description='',
                     email='',
@@ -975,8 +975,11 @@ class Org(object):
             E.StoredVmQuota(stored_vm_quota),
             E.DeployedVmQuota(deployed_vm_quota),
             E.Role(href=role_href),
-            E.Password(password),
             name=user_name)
+
+        if password is not None:
+            user.append(E.Password(password))
+
         return self.client.post_linked_resource(
             resource_admin, RelationType.ADD, EntityType.USER.value, user)
 
