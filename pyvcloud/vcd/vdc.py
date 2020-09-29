@@ -2269,8 +2269,6 @@ class VDC(object):
 
         :raises: EntityNotFoundException: if the named gateway can not be
         found.
-        :raises: MultipleRecordsException: if more than one gateway with the
-            provided name are found.
         """
         name_filter = ('name', name)
         query = self.client.get_typed_query(
@@ -2280,10 +2278,8 @@ class VDC(object):
         records = list(query.execute())
         if records is None or len(records) == 0:
             return None
-        elif len(records) > 1:
-            raise MultipleRecordsException("Found multiple gateway named "
-                                           "'%s'," % name)
-        return records[0]
+
+        return records
 
     def list_vapp_details(self, resource_type, filter=None):
         """List vApp details.
