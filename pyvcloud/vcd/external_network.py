@@ -533,8 +533,7 @@ class ExternalNetwork(object):
         gateway_sub_allocated_ip = []
         allocation_range = ''
         gateway_resource = self.__get_gateway_resource(gateway_href)
-        for gw_inf in gateway_resource.Configuration.GatewayInterfaces. \
-                GatewayInterface:
+        for gw_inf in gateway_resource.Configuration.GatewayInterfaces.findall("*"):
             if gw_inf.InterfaceType == "uplink" and gw_inf.Name == self.name:
                 if hasattr(gw_inf.SubnetParticipation, 'IpRanges'):
                     for ip_range in gw_inf.SubnetParticipation. \
@@ -543,10 +542,9 @@ class ExternalNetwork(object):
                         end_address = ip_range.EndAddress
                         allocation_range += \
                             start_address + '-' + end_address + ','
-            gateway_sub_allocated_ip.append(gateway_resource.get('name'))
-            gateway_sub_allocated_ip.append(allocation_range)
-            return gateway_sub_allocated_ip
-        return None
+        gateway_sub_allocated_ip.append(gateway_resource.get('name'))
+        gateway_sub_allocated_ip.append(allocation_range)
+        return gateway_sub_allocated_ip
 
     def __get_gateway_resource(self, gateway_href):
         gateway = Gateway(self.client, href=gateway_href)
