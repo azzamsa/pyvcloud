@@ -22,6 +22,7 @@ from pyvcloud.vcd.client import RelationType
 from pyvcloud.vcd.exceptions import AlreadyExistsException
 from pyvcloud.vcd.exceptions import EntityNotFoundException
 from pyvcloud.vcd.exceptions import InvalidParameterException
+from pyvcloud.vcd.exceptions import OperationNotSupportedException
 from pyvcloud.vcd.network_url_constants import CRL_CERTIFICATE_POST
 from pyvcloud.vcd.network_url_constants import DHCP_URL_TEMPLATE
 from pyvcloud.vcd.network_url_constants import FIREWALL_URL_TEMPLATE
@@ -667,8 +668,11 @@ class Gateway(object):
                 existing_ip_ranges = self.get_sub_allocate_ip_ranges_element(
                     subnet_participation
                 )
+                if existing_ip_ranges is None:
+                    raise OperationNotSupportedException("Gateway has no sub-allocate IP")
                 ip_ranges = self._find_ip_range_slice(existing_ip_ranges, ip)
-
+                if ip_ranges is None:
+                    raise EntityNotFoundException("Ip not found in current Gateway")
                 # remove previous ip range slice
                 self.__remove_ip_range_elements(existing_ip_ranges, ip_ranges)
                 # add new slice
